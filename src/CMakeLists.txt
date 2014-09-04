@@ -1,3 +1,4 @@
+# Very basic CMake project for CLion users, as well as anyone who likes to use CMake.
 cmake_minimum_required(VERSION 2.8.4)
 project(json_utf8)
 
