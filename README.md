@@ -1,7 +1,7 @@
 About
 -----
 
-json\_utf8 is a \*nix-only, UTF-8 only fork of the [SimpleJSON @MJPA/SimpleJSON] library.
+json\_utf8 is a \*nix-only, UTF-8 only fork of the [SimpleJSON](https://github.com/mjpa/SimpleJSON) library.
 
 The SimpleJSON library is cross platform, and uses UTF-16 "wide" characters and strings.  These "wide" strings are difficult to convert to and from the far more common UTF-8 strings used by most C++ programmers on POSIX systems.
 
