@@ -25,21 +25,14 @@
 #ifndef _JSON_H_
 #define _JSON_H_
 
-// Win32 incompatibilities
-#if defined(WIN32) && !defined(__GNUC__)
-	#define wcsncasecmp _wcsnicmp
-	static inline bool isnan(double x) { return x != x; }
-	static inline bool isinf(double x) { return !isnan(x) && isnan(x - x); }
-#endif
-
 #include <vector>
 #include <string>
 #include <map>
 
 // Linux compile fix - from quaker66
 #ifdef __GNUC__
-	#include <cstring>
-	#include <cstdlib>
+#include <cstring>
+#include <cstdlib>
 #endif
 
 // Mac compile fixes - from quaker66, Lion fix by dabrahams
@@ -72,11 +65,11 @@
 #endif
 
 // Simple function to check a string 's' has at least 'n' characters
-static inline bool simplejson_wcsnlen(const wchar_t *s, size_t n) {
+static inline bool simplejson_wcsnlen(const char *s, size_t n) {
 	if (s == 0)
 		return false;
 
-	const wchar_t *save = s;
+	const char *save = s;
 	while (n-- > 0)
 	{
 		if (*(save++) == 0) return false;
@@ -88,25 +81,24 @@ static inline bool simplejson_wcsnlen(const wchar_t *s, size_t n) {
 // Custom types
 class JSONValue;
 typedef std::vector<JSONValue*> JSONArray;
-typedef std::map<std::wstring, JSONValue*> JSONObject;
+typedef std::map<std::string, JSONValue*> JSONObject;
 
 #include "JSONValue.h"
 
 class JSON
 {
 	friend class JSONValue;
-	
-	public:
-		static JSONValue* Parse(const char *data);
-		static JSONValue* Parse(const wchar_t *data);
-		static std::wstring Stringify(const JSONValue *value);
-	protected:
-		static bool SkipWhitespace(const wchar_t **data);
-		static bool ExtractString(const wchar_t **data, std::wstring &str);
-		static double ParseInt(const wchar_t **data);
-		static double ParseDecimal(const wchar_t **data);
-	private:
-		JSON();
+
+public:
+	static JSONValue* Parse(const char *data);
+	static std::string Stringify(const JSONValue *value);
+protected:
+	static bool SkipWhitespace(const char **data);
+	static bool ExtractString(const char **data, std::string &str);
+	static double ParseInt(const char **data);
+	static double ParseDecimal(const char **data);
+private:
+	JSON();
 };
 
 #endif

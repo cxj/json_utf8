@@ -38,91 +38,91 @@
 #define FREE_OBJECT(x) { JSONObject::iterator iter; for (iter = x.begin(); iter != x.end(); iter++) { delete (*iter).second; } }
 
 /**
- * Parses a JSON encoded value to a JSONValue object
- *
- * @access protected
- *
- * @param wchar_t** data Pointer to a wchar_t* that contains the data
- *
- * @return JSONValue* Returns a pointer to a JSONValue object on success, NULL on error
- */
-JSONValue *JSONValue::Parse(const wchar_t **data)
+* Parses a JSON encoded value to a JSONValue object
+*
+* @access protected
+*
+* @param char** data Pointer to a char* that contains the data
+*
+* @return JSONValue* Returns a pointer to a JSONValue object on success, NULL on error
+*/
+JSONValue *JSONValue::Parse(const char **data)
 {
 	// Is it a string?
 	if (**data == '"')
 	{
-		std::wstring str;
+		std::string str;
 		if (!JSON::ExtractString(&(++(*data)), str))
 			return NULL;
 		else
 			return new JSONValue(str);
 	}
-	
-	// Is it a boolean?
-	else if ((simplejson_wcsnlen(*data, 4) && wcsncasecmp(*data, L"true", 4) == 0) || (simplejson_wcsnlen(*data, 5) && wcsncasecmp(*data, L"false", 5) == 0))
+
+		// Is it a boolean?
+	else if ((simplejson_wcsnlen(*data, 4) && strncasecmp(*data, "true", 4) == 0) || (simplejson_wcsnlen(*data, 5) && strncasecmp(*data, "false", 5) == 0))
 	{
-		bool value = wcsncasecmp(*data, L"true", 4) == 0;
+		bool value = strncasecmp(*data, "true", 4) == 0;
 		(*data) += value ? 4 : 5;
 		return new JSONValue(value);
 	}
-	
-	// Is it a null?
-	else if (simplejson_wcsnlen(*data, 4) && wcsncasecmp(*data, L"null", 4) == 0)
+
+		// Is it a null?
+	else if (simplejson_wcsnlen(*data, 4) && strncasecmp(*data, "null", 4) == 0)
 	{
 		(*data) += 4;
 		return new JSONValue();
 	}
-	
-	// Is it a number?
-	else if (**data == L'-' || (**data >= L'0' && **data <= L'9'))
+
+		// Is it a number?
+	else if (**data == '-' || (**data >= '0' && **data <= '9'))
 	{
 		// Negative?
-		bool neg = **data == L'-';
+		bool neg = **data == '-';
 		if (neg) (*data)++;
 
 		double number = 0.0;
 
 		// Parse the whole part of the number - only if it wasn't 0
-		if (**data == L'0')
+		if (**data == '0')
 			(*data)++;
-		else if (**data >= L'1' && **data <= L'9')
+		else if (**data >= '1' && **data <= '9')
 			number = JSON::ParseInt(data);
 		else
 			return NULL;
-		
+
 		// Could be a decimal now...
 		if (**data == '.')
 		{
 			(*data)++;
 
 			// Not get any digits?
-			if (!(**data >= L'0' && **data <= L'9'))
+			if (!(**data >= '0' && **data <= '9'))
 				return NULL;
-			
+
 			// Find the decimal and sort the decimal place out
 			// Use ParseDecimal as ParseInt won't work with decimals less than 0.1
 			// thanks to Javier Abadia for the report & fix
 			double decimal = JSON::ParseDecimal(data);
-			
+
 			// Save the number
 			number += decimal;
 		}
 
 		// Could be an exponent now...
-		if (**data == L'E' || **data == L'e')
+		if (**data == 'E' || **data == 'e')
 		{
 			(*data)++;
 
 			// Check signage of expo
 			bool neg_expo = false;
-			if (**data == L'-' || **data == L'+')
+			if (**data == '-' || **data == '+')
 			{
-				neg_expo = **data == L'-';
+				neg_expo = **data == '-';
 				(*data)++;
 			}
-			
+
 			// Not get any digits?
-			if (!(**data >= L'0' && **data <= L'9'))
+			if (!(**data >= '0' && **data <= '9'))
 				return NULL;
 
 			// Sort the expo out
@@ -137,13 +137,13 @@ JSONValue *JSONValue::Parse(const wchar_t **data)
 		return new JSONValue(number);
 	}
 
-	// An object?
-	else if (**data == L'{')
+		// An object?
+	else if (**data == '{')
 	{
 		JSONObject object;
-		
+
 		(*data)++;
-	
+
 		while (**data != 0)
 		{
 			// Whitespace at the start?
@@ -152,92 +152,92 @@ JSONValue *JSONValue::Parse(const wchar_t **data)
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			// Special case - empty object
-			if (object.size() == 0 && **data == L'}')
+			if (object.size() == 0 && **data == '}')
 			{
 				(*data)++;
 				return new JSONValue(object);
 			}
-			
+
 			// We want a string now...
-			std::wstring name;
+			std::string name;
 			if (!JSON::ExtractString(&(++(*data)), name))
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			// More whitespace?
 			if (!JSON::SkipWhitespace(data))
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			// Need a : now
-			if (*((*data)++) != L':')
+			if (*((*data)++) != ':')
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			// More whitespace?
 			if (!JSON::SkipWhitespace(data))
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
-			// The value is here			
+
+			// The value is here
 			JSONValue *value = Parse(data);
 			if (value == NULL)
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			// Add the name:value
 			if (object.find(name) != object.end())
 				delete object[name];
 			object[name] = value;
-			
+
 			// More whitespace?
 			if (!JSON::SkipWhitespace(data))
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			// End of object?
-			if (**data == L'}')
+			if (**data == '}')
 			{
 				(*data)++;
 				return new JSONValue(object);
 			}
-			
+
 			// Want a , now
-			if (**data != L',')
+			if (**data != ',')
 			{
 				FREE_OBJECT(object);
 				return NULL;
 			}
-			
+
 			(*data)++;
 		}
-		
+
 		// Only here if we ran out of data
 		FREE_OBJECT(object);
 		return NULL;
 	}
-	
-	// An array?
-	else if (**data == L'[')
+
+		// An array?
+	else if (**data == '[')
 	{
 		JSONArray array;
-		
+
 		(*data)++;
-		
+
 		while (**data != 0)
 		{
 			// Whitespace at the start?
@@ -246,14 +246,14 @@ JSONValue *JSONValue::Parse(const wchar_t **data)
 				FREE_ARRAY(array);
 				return NULL;
 			}
-			
+
 			// Special case - empty array
-			if (array.size() == 0 && **data == L']')
+			if (array.size() == 0 && **data == ']')
 			{
 				(*data)++;
 				return new JSONValue(array);
 			}
-			
+
 			// Get the value
 			JSONValue *value = Parse(data);
 			if (value == NULL)
@@ -261,40 +261,40 @@ JSONValue *JSONValue::Parse(const wchar_t **data)
 				FREE_ARRAY(array);
 				return NULL;
 			}
-			
+
 			// Add the value
 			array.push_back(value);
-			
+
 			// More whitespace?
 			if (!JSON::SkipWhitespace(data))
 			{
 				FREE_ARRAY(array);
 				return NULL;
 			}
-			
+
 			// End of array?
-			if (**data == L']')
+			if (**data == ']')
 			{
 				(*data)++;
 				return new JSONValue(array);
 			}
-			
+
 			// Want a , now
-			if (**data != L',')
+			if (**data != ',')
 			{
 				FREE_ARRAY(array);
 				return NULL;
 			}
-			
+
 			(*data)++;
 		}
-		
+
 		// Only here if we ran out of data
 		FREE_ARRAY(array);
 		return NULL;
 	}
-	
-	// Ran out of possibilites, it's bad!
+
+		// Ran out of possibilites, it's bad!
 	else
 	{
 		return NULL;
@@ -302,48 +302,48 @@ JSONValue *JSONValue::Parse(const wchar_t **data)
 }
 
 /**
- * Basic constructor for creating a JSON Value of type NULL
- *
- * @access public
- */
+* Basic constructor for creating a JSON Value of type NULL
+*
+* @access public
+*/
 JSONValue::JSONValue(/*NULL*/)
 {
 	type = JSONType_Null;
 }
 
 /**
- * Basic constructor for creating a JSON Value of type String
- *
- * @access public
- *
- * @param wchar_t* m_char_value The string to use as the value
- */
-JSONValue::JSONValue(const wchar_t *m_char_value)
+* Basic constructor for creating a JSON Value of type String
+*
+* @access public
+*
+* @param char* m_char_value The string to use as the value
+*/
+JSONValue::JSONValue(const char *m_char_value)
 {
 	type = JSONType_String;
-	string_value = std::wstring(m_char_value);
+	string_value = std::string(m_char_value);
 }
 
 /**
- * Basic constructor for creating a JSON Value of type String
- *
- * @access public
- *
- * @param std::wstring m_string_value The string to use as the value
- */
-JSONValue::JSONValue(const std::wstring &m_string_value)
+* Basic constructor for creating a JSON Value of type String
+*
+* @access public
+*
+* @param std::string m_string_value The string to use as the value
+*/
+JSONValue::JSONValue(const std::string &m_string_value)
 {
 	type = JSONType_String;
 	string_value = m_string_value;
 }
 
 /**
- * Basic constructor for creating a JSON Value of type Bool
- *
- * @access public
- *
- * @param bool m_bool_value The bool to use as the value
- */
+* Basic constructor for creating a JSON Value of type Bool
+*
+* @access public
+*
+* @param bool m_bool_value The bool to use as the value
+*/
 JSONValue::JSONValue(bool m_bool_value)
 {
 	type = JSONType_Bool;
@@ -351,12 +351,12 @@ JSONValue::JSONValue(bool m_bool_value)
 }
 
 /**
- * Basic constructor for creating a JSON Value of type Number
- *
- * @access public
- *
- * @param double m_number_value The number to use as the value
- */
+* Basic constructor for creating a JSON Value of type Number
+*
+* @access public
+*
+* @param double m_number_value The number to use as the value
+*/
 JSONValue::JSONValue(double m_number_value)
 {
 	type = JSONType_Number;
@@ -364,12 +364,12 @@ JSONValue::JSONValue(double m_number_value)
 }
 
 /**
- * Basic constructor for creating a JSON Value of type Array
- *
- * @access public
- *
- * @param JSONArray m_array_value The JSONArray to use as the value
- */
+* Basic constructor for creating a JSON Value of type Array
+*
+* @access public
+*
+* @param JSONArray m_array_value The JSONArray to use as the value
+*/
 JSONValue::JSONValue(const JSONArray &m_array_value)
 {
 	type = JSONType_Array;
@@ -377,12 +377,12 @@ JSONValue::JSONValue(const JSONArray &m_array_value)
 }
 
 /**
- * Basic constructor for creating a JSON Value of type Object
- *
- * @access public
- *
- * @param JSONObject m_object_value The JSONObject to use as the value
- */
+* Basic constructor for creating a JSON Value of type Object
+*
+* @access public
+*
+* @param JSONObject m_object_value The JSONObject to use as the value
+*/
 JSONValue::JSONValue(const JSONObject &m_object_value)
 {
 	type = JSONType_Object;
@@ -390,11 +390,11 @@ JSONValue::JSONValue(const JSONObject &m_object_value)
 }
 
 /**
- * The destructor for the JSON Value object
- * Handles deleting the objects in the array or the object value
- *
- * @access public
- */
+* The destructor for the JSON Value object
+* Handles deleting the objects in the array or the object value
+*
+* @access public
+*/
 JSONValue::~JSONValue()
 {
 	if (type == JSONType_Array)
@@ -414,151 +414,151 @@ JSONValue::~JSONValue()
 }
 
 /**
- * Checks if the value is a NULL
- *
- * @access public
- *
- * @return bool Returns true if it is a NULL value, false otherwise
- */
+* Checks if the value is a NULL
+*
+* @access public
+*
+* @return bool Returns true if it is a NULL value, false otherwise
+*/
 bool JSONValue::IsNull() const
 {
 	return type == JSONType_Null;
 }
 
 /**
- * Checks if the value is a String
- *
- * @access public
- *
- * @return bool Returns true if it is a String value, false otherwise
- */
+* Checks if the value is a String
+*
+* @access public
+*
+* @return bool Returns true if it is a String value, false otherwise
+*/
 bool JSONValue::IsString() const
 {
 	return type == JSONType_String;
 }
 
 /**
- * Checks if the value is a Bool
- *
- * @access public
- *
- * @return bool Returns true if it is a Bool value, false otherwise
- */
+* Checks if the value is a Bool
+*
+* @access public
+*
+* @return bool Returns true if it is a Bool value, false otherwise
+*/
 bool JSONValue::IsBool() const
 {
 	return type == JSONType_Bool;
 }
 
 /**
- * Checks if the value is a Number
- *
- * @access public
- *
- * @return bool Returns true if it is a Number value, false otherwise
- */
+* Checks if the value is a Number
+*
+* @access public
+*
+* @return bool Returns true if it is a Number value, false otherwise
+*/
 bool JSONValue::IsNumber() const
 {
 	return type == JSONType_Number;
 }
 
 /**
- * Checks if the value is an Array
- *
- * @access public
- *
- * @return bool Returns true if it is an Array value, false otherwise
- */
+* Checks if the value is an Array
+*
+* @access public
+*
+* @return bool Returns true if it is an Array value, false otherwise
+*/
 bool JSONValue::IsArray() const
 {
 	return type == JSONType_Array;
 }
 
 /**
- * Checks if the value is an Object
- *
- * @access public
- *
- * @return bool Returns true if it is an Object value, false otherwise
- */
+* Checks if the value is an Object
+*
+* @access public
+*
+* @return bool Returns true if it is an Object value, false otherwise
+*/
 bool JSONValue::IsObject() const
 {
 	return type == JSONType_Object;
 }
 
 /**
- * Retrieves the String value of this JSONValue
- * Use IsString() before using this method.
- *
- * @access public
- *
- * @return std::wstring Returns the string value
- */
-const std::wstring &JSONValue::AsString() const
+* Retrieves the String value of this JSONValue
+* Use IsString() before using this method.
+*
+* @access public
+*
+* @return std::string Returns the string value
+*/
+const std::string &JSONValue::AsString() const
 {
 	return string_value;
 }
 
 /**
- * Retrieves the Bool value of this JSONValue
- * Use IsBool() before using this method.
- *
- * @access public
- *
- * @return bool Returns the bool value
- */
+* Retrieves the Bool value of this JSONValue
+* Use IsBool() before using this method.
+*
+* @access public
+*
+* @return bool Returns the bool value
+*/
 bool JSONValue::AsBool() const
 {
 	return bool_value;
 }
 
 /**
- * Retrieves the Number value of this JSONValue
- * Use IsNumber() before using this method.
- *
- * @access public
- *
- * @return double Returns the number value
- */
+* Retrieves the Number value of this JSONValue
+* Use IsNumber() before using this method.
+*
+* @access public
+*
+* @return double Returns the number value
+*/
 double JSONValue::AsNumber() const
 {
 	return number_value;
 }
 
 /**
- * Retrieves the Array value of this JSONValue
- * Use IsArray() before using this method.
- *
- * @access public
- *
- * @return JSONArray Returns the array value
- */
+* Retrieves the Array value of this JSONValue
+* Use IsArray() before using this method.
+*
+* @access public
+*
+* @return JSONArray Returns the array value
+*/
 const JSONArray &JSONValue::AsArray() const
 {
 	return array_value;
 }
 
 /**
- * Retrieves the Object value of this JSONValue
- * Use IsObject() before using this method.
- *
- * @access public
- *
- * @return JSONObject Returns the object value
- */
+* Retrieves the Object value of this JSONValue
+* Use IsObject() before using this method.
+*
+* @access public
+*
+* @return JSONObject Returns the object value
+*/
 const JSONObject &JSONValue::AsObject() const
 {
 	return object_value;
 }
 
 /**
- * Retrieves the number of children of this JSONValue.
- * This number will be 0 or the actual number of children
- * if IsArray() or IsObject().
- *
- * @access public
- *
- * @return The number of children.
- */
+* Retrieves the number of children of this JSONValue.
+* This number will be 0 or the actual number of children
+* if IsArray() or IsObject().
+*
+* @access public
+*
+* @return The number of children.
+*/
 std::size_t JSONValue::CountChildren() const
 {
 	switch (type)
@@ -573,13 +573,13 @@ std::size_t JSONValue::CountChildren() const
 }
 
 /**
- * Checks if this JSONValue has a child at the given index.
- * Use IsArray() before using this method.
- *
- * @access public
- *
- * @return bool Returns true if the array has a value at the given index.
- */
+* Checks if this JSONValue has a child at the given index.
+* Use IsArray() before using this method.
+*
+* @access public
+*
+* @return bool Returns true if the array has a value at the given index.
+*/
 bool JSONValue::HasChild(std::size_t index) const
 {
 	if (type == JSONType_Array)
@@ -593,14 +593,14 @@ bool JSONValue::HasChild(std::size_t index) const
 }
 
 /**
- * Retrieves the child of this JSONValue at the given index.
- * Use IsArray() before using this method.
- *
- * @access public
- *
- * @return JSONValue* Returns JSONValue at the given index or NULL
- *                    if it doesn't exist.
- */
+* Retrieves the child of this JSONValue at the given index.
+* Use IsArray() before using this method.
+*
+* @access public
+*
+* @return JSONValue* Returns JSONValue at the given index or NULL
+*                    if it doesn't exist.
+*/
 JSONValue *JSONValue::Child(std::size_t index)
 {
 	if (index < array_value.size())
@@ -614,14 +614,14 @@ JSONValue *JSONValue::Child(std::size_t index)
 }
 
 /**
- * Checks if this JSONValue has a child at the given key.
- * Use IsObject() before using this method.
- *
- * @access public
- *
- * @return bool Returns true if the object has a value at the given key.
- */
-bool JSONValue::HasChild(const wchar_t* name) const
+* Checks if this JSONValue has a child at the given key.
+* Use IsObject() before using this method.
+*
+* @access public
+*
+* @return bool Returns true if the object has a value at the given key.
+*/
+bool JSONValue::HasChild(const char* name) const
 {
 	if (type == JSONType_Object)
 	{
@@ -634,15 +634,15 @@ bool JSONValue::HasChild(const wchar_t* name) const
 }
 
 /**
- * Retrieves the child of this JSONValue at the given key.
- * Use IsObject() before using this method.
- *
- * @access public
- *
- * @return JSONValue* Returns JSONValue for the given key in the object
- *                    or NULL if it doesn't exist.
- */
-JSONValue* JSONValue::Child(const wchar_t* name)
+* Retrieves the child of this JSONValue at the given key.
+* Use IsObject() before using this method.
+*
+* @access public
+*
+* @return JSONValue* Returns JSONValue for the given key in the object
+*                    or NULL if it doesn't exist.
+*/
+JSONValue* JSONValue::Child(const char* name)
 {
 	JSONObject::const_iterator it = object_value.find(name);
 	if (it != object_value.end())
@@ -656,75 +656,75 @@ JSONValue* JSONValue::Child(const wchar_t* name)
 }
 
 /**
- * Creates a JSON encoded string for the value with all necessary characters escaped
- *
- * @access public
- *
- * @return std::wstring Returns the JSON string
- */
-std::wstring JSONValue::Stringify() const
+* Creates a JSON encoded string for the value with all necessary characters escaped
+*
+* @access public
+*
+* @return std::string Returns the JSON string
+*/
+std::string JSONValue::Stringify() const
 {
-	std::wstring ret_string;
-	
+	std::string ret_string;
+
 	switch (type)
 	{
 		case JSONType_Null:
-			ret_string = L"null";
+			ret_string = "null";
 			break;
-		
+
 		case JSONType_String:
 			ret_string = StringifyString(string_value);
 			break;
-		
+
 		case JSONType_Bool:
-			ret_string = bool_value ? L"true" : L"false";
+			ret_string = bool_value ? "true" : "false";
 			break;
-		
+
 		case JSONType_Number:
 		{
 			if (isinf(number_value) || isnan(number_value))
-				ret_string = L"null";
+				ret_string = "null";
 			else
 			{
-				std::wstringstream ss;
+				std::stringstream ss;
 				ss.precision(15);
 				ss << number_value;
 				ret_string = ss.str();
 			}
 			break;
 		}
-		
+
 		case JSONType_Array:
 		{
-			ret_string = L"[";
+			ret_string = "[";
 			JSONArray::const_iterator iter = array_value.begin();
 			while (iter != array_value.end())
 			{
 				ret_string += (*iter)->Stringify();
-				
+
 				// Not at the end - add a separator
 				if (++iter != array_value.end())
-					ret_string += L",";
+					ret_string += ",";
 			}
-			ret_string += L"]";
+			ret_string += "]";
 			break;
 		}
-		
+
 		case JSONType_Object:
 		{
-			ret_string = L"{";
+			ret_string = "{";
 			JSONObject::const_iterator iter = object_value.begin();
 			while (iter != object_value.end())
 			{
 				ret_string += StringifyString((*iter).first);
-				ret_string += L":";
+				ret_string += ":";
 				ret_string += (*iter).second->Stringify();
-				
+
 				// Not at the end - add a separator
 				if (++iter != object_value.end())
-					ret_string += L",";
+					ret_string += ",";
 			}
-			ret_string += L"}";
+			ret_string += "}";
 			break;
 		}
 	}
@@ -733,60 +733,60 @@ std::wstring JSONValue::Stringify() const
 }
 
 /**
- * Creates a JSON encoded string with all required fields escaped
- * Works from http://www.ecma-internationl.org/publications/files/ECMA-ST/ECMA-262.pdf
- * Section 15.12.3.
- *
- * @access private
- *
- * @param std::wstring str The string that needs to have the characters escaped
- *
- * @return std::wstring Returns the JSON string
- */
-std::wstring JSONValue::StringifyString(const std::wstring &str)
+* Creates a JSON encoded string with all required fields escaped
+* Works from http://www.ecma-internationl.org/publications/files/ECMA-ST/ECMA-262.pdf
+* Section 15.12.3.
+*
+* @access private
+*
+* @param std::string str The string that needs to have the characters escaped
+*
+* @return std::string Returns the JSON string
+*/
+std::string JSONValue::StringifyString(const std::string &str)
 {
-	std::wstring str_out = L"\"";
-	
-	std::wstring::const_iterator iter = str.begin();
+	std::string str_out = "\"";
+
+	std::string::const_iterator iter = str.begin();
 	while (iter != str.end())
 	{
-		wchar_t chr = *iter;
+		char chr = *iter;
 
-		if (chr == L'"' || chr == L'\\' || chr == L'/')
+		if (chr == '"' || chr == '\\' || chr == '/')
 		{
-			str_out += L'\\';
+			str_out += '\\';
 			str_out += chr;
 		}
-		else if (chr == L'\b')
+		else if (chr == '\b')
 		{
-			str_out += L"\\b";
+			str_out += "\\b";
 		}
-		else if (chr == L'\f')
+		else if (chr == '\f')
 		{
-			str_out += L"\\f";
+			str_out += "\\f";
 		}
-		else if (chr == L'\n')
+		else if (chr == '\n')
 		{
-			str_out += L"\\n";
+			str_out += "\\n";
 		}
-		else if (chr == L'\r')
+		else if (chr == '\r')
 		{
-			str_out += L"\\r";
+			str_out += "\\r";
 		}
-		else if (chr == L'\t')
+		else if (chr == '\t')
 		{
-			str_out += L"\\t";
+			str_out += "\\t";
 		}
-		else if (chr < L' ' || chr > 126)
+		else if (chr < ' ')
 		{
-			str_out += L"\\u";
+			str_out += "\\u";
 			for (int i = 0; i < 4; i++)
 			{
 				int value = (chr >> 12) & 0xf;
 				if (value >= 0 && value <= 9)
-					str_out += (wchar_t)('0' + value);
+					str_out += (char)('0' + value);
 				else if (value >= 10 && value <= 15)
-					str_out += (wchar_t)('A' + (value - 10));
+					str_out += (char)('A' + (value - 10));
 				chr <<= 4;
 			}
 		}
@@ -794,10 +794,10 @@ std::wstring JSONValue::StringifyString(const std::wstring &str)
 		{
 			str_out += chr;
 		}
-		
+
 		iter++;
 	}
-	
-	str_out += L"\"";
+
+	str_out += "\"";
 	return str_out;
 }

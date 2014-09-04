@@ -40,7 +40,7 @@
 using namespace std;
 
 // Helper to do a quick parse check
-bool parse_check(wstring str)
+bool parse_check(string str)
 {
 	JSONValue *v = JSON::Parse(str.c_str());
 	if (v)
@@ -53,22 +53,22 @@ bool parse_check(wstring str)
 }
 
 // Helper to get a files contents
-bool get_file(string filename, wstring &description, wstring &data)
+bool get_file(string filename, string &description, string &data)
 {
-	wifstream in(filename.c_str());
+	ifstream in(filename.c_str());
 	if (in.is_open() == false)
 		return false;
 
 	getline(in, description);
 	if (description.length() > DESC_LENGTH)
 		description.resize(DESC_LENGTH);
-	
-	wstring line;
-	data = L"";
+
+	string line;
+	data = "";
 	while (getline(in, line))
 	{
 		data += line;
-		if (!in.eof()) data += L"\n";
+		if (!in.eof()) data += "\n";
 	}
 	return true;
 }
@@ -77,86 +77,72 @@ bool get_file(string filename, wstring &description, wstring &data)
 void run_test_type(bool type)
 {
 	int test = 0;
-	wstring data = L"", name = L"";
+	string data = "", name = "";
 	ostringstream stream;
-	wostringstream wstream;
+	// wostringstream stream;
 
 	while (true)
 	{
 		stream.str("");
 		stream << "test_cases/" << (type ? "pass" : "fail") << (++test) << ".json";
 		if (get_file(stream.str(), name, data) == false) break;
-		
-		print_out(L"| ");
-		
-		wstream.str(L"");
-		wstream.setf(ios_base::left, ios_base::adjustfield);
-		wstream << setw(DESC_LENGTH) << name;
-		print_out(wstream.str().c_str());
-		
-		print_out(L" | ");
-		print_out(parse_check(data) != type ? L"failed" : L"passed");
-		print_out(L" |\r\n");
+
+		print_out("| ");
+
+		stream.str("");
+		stream.setf(ios_base::left, ios_base::adjustfield);
+		stream << setw(DESC_LENGTH) << name;
+		print_out(stream.str().c_str());
+
+		print_out(" | ");
+		print_out(parse_check(data) != type ? "failed" : "passed");
+		print_out(" |\r\n");
 	}
 }
 
 // Tests to run
 void run_tests()
 {
-	wstring vert_sep = wstring(L"+-") + wstring(DESC_LENGTH, L'-') + wstring(L"-+--------+\r\n");
-	
+	string vert_sep = string("+-") + string(DESC_LENGTH, '-') + string("-+--------+\r\n");
+
 	print_out(vert_sep.c_str());
-	
-	wstring header = wstring(L"| Test case") + wstring(DESC_LENGTH - 9, L' ') + wstring(L" | Result |\r\n");
+
+	string header = string("| Test case") + string(DESC_LENGTH - 9, ' ') + string(" | Result |\r\n");
 	print_out(header.c_str());
-	
+
 	print_out(vert_sep.c_str());
-	
+
 	run_test_type(true);
 	run_test_type(false);
-	
+
 	// Static test for a very precise decimal number
 	double decimal = 40.9358215191158457340974;
 	JSONValue *json_value = JSON::Parse("40.9358215191158457340974");
-	wstring test_output = wstring(L"| Very precise decimal number") + wstring(DESC_LENGTH - 27, L' ') + wstring(L" | ");
+	string test_output = string("| Very precise decimal number") + string(DESC_LENGTH - 27, ' ') + string(" | ");
 	if (json_value && json_value->IsNumber() && json_value->AsNumber() == decimal)
 	{
-		test_output += wstring(L"passed |\r\n");
+		test_output += string("passed |\r\n");
 		delete json_value;
 	}
 	else
 	{
-		test_output += wstring(L"failed |\r\n");
+		test_output += string("failed |\r\n");
 	}
 	print_out(test_output.c_str());
-	
+
 	// Static test for a decimal number with leading zeros
 	decimal = 1.00034985734000;
 	json_value = JSON::Parse("1.00034985734000");
-	test_output = wstring(L"| Decimal number with leading zeros") + wstring(DESC_LENGTH - 33, L' ') + wstring(L" | ");
+	test_output = string("| Decimal number with leading zeros") + string(DESC_LENGTH - 33, ' ') + string(" | ");
 	if (json_value && json_value->IsNumber() && json_value->AsNumber() == decimal)
 	{
-		test_output += wstring(L"passed |\r\n");
+		test_output += string("passed |\r\n");
 	}
 	else
 	{
-		test_output += wstring(L"failed |\r\n");
+		test_output += string("failed |\r\n");
 	}
 	print_out(test_output.c_str());
-	
-	// Test case for issue #20.
-	test_output = wstring(L"| Testing for valid encoding of ASCII 126") + wstring(DESC_LENGTH - 39, L' ') + wstring(L" | ");
-	wstring issue_20_test = L"{\"test\":\"Value \\u00E0\"}";
-	json_value = JSON::Parse(issue_20_test.c_str());
-	if (json_value && json_value->Stringify() == issue_20_test)
-	{
-		test_output += wstring(L"passed |\r\n");
-	}
-	else
-	{
-		test_output += wstring(L"failed |\r\n");
-	}
-	print_out(test_output.c_str());
-	
+
 	print_out(vert_sep.c_str());
 }
