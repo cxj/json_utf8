@@ -7,7 +7,7 @@ The SimpleJSON library is cross platform, and uses UTF-16 "wide" characters and 
 
 This library (json\_utf8) attempts to make life easier for the rest of us using UTF-8 strings.
 
-json\utf8 is a simple JSON library written in C++. It is designed to be simple
+json\_utf8 is a simple JSON library written in C++. It is designed to be easy
 to use.
 
 The library consists of 2 classes - JSON and JSONValue. The JSON class acts
